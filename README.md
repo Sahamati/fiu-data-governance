@@ -44,6 +44,9 @@ The clean room service architecture guidelines defined in this document outlines
 Trust in service components is minimized by decoupling the core business logic of services from operations such as auditing and management of secrets and hosting the business logic in a *sandboxed environment *where all ingress and egress communication is monitored and checked for violations of consent and data usage policy. Trust in entities such as service administrators may be minimized using strict access control augmented with technologies such as confidential computing. 
 
 ## Clean Room Service Architecture
+
+![Clean Room Service Architecture](clean-room-service-architecture.png)
+
 A clean room service (CRS) is composed of one-or more clean room microservices (CRMS) potentially hosted by different organizations. 
 
 Each CRMS consists of multiple pods, each hosting one or more business logic containers. These containers expose their functionality via one or more HTTP endpoints.  
