@@ -97,7 +97,6 @@ allowEgress {
 
 # Check consent start and expiry dates against current time
 is_consent_active {
-
   # Parse dates from ISO to ns
   consent_start := time.parse_rfc3339_ns(input.ConsentDetail.consentStart)
   consent_expiry := time.parse_rfc3339_ns(input.ConsentDetail.consentExpiry)
@@ -108,7 +107,6 @@ is_consent_active {
 
 # Checks if the consent was signed by the key-set of the appropriate account aggregator
 is_signature_verified { 
-
   # Decode consent signature             
   [header, payload, _] := io.jwt.decode(input.signedConsent)
   # Check that the signature is valid using keys from the central registry
