@@ -27,21 +27,17 @@ The Data Empowerment and Protection Architecture or DEPA enables sharing persona
 
 As it stands, there are a few challenges with DEPA. The first is the potential for data misuse. With DEPA, any data consumer can easily obtain personal data and subsequently misuse the data in violation of consent. The risk of misuse is significantly higher in frameworks like OCEN where data is exposed to multiple data consumers. Today, there is no mechanism to enforce that all data consumers process data strictly in accordance with declarations made by the data consumer in the consent request e.g., for the purpose and lifetime defined in the consent request. To some extent, this problem is addressed by mandating compliance and audit, which limits participation to a select set of regulated entities. As DEPA evolves and number of data providers and consumers, and is used for sharing different kinds of data, concerns regarding data misuse will only grow.
 
-A second related challenge is data over-collection. Using the consent mechanism provided by DEPA, it is easy for a data consumer to ask for more data than what is strictly required for the service being offered to the data principal. It is envisaged that data consumers will be restricted to using only one amongst a set of pre-defined consent templates, but it is challenging to define and enforce the use of such templates. 
-
-Another challenge is lack of access to high quality training data to train better models. Access to training data is challenging for multiple reasons. First and foremost, there are no incentives for data principals to share data for training since it doesn't directly benefit them. Secondly, training requires large amounts of data to be collected and labelled over a long period of time, all of which significantly increases privacy risks. 
+A second related challenge is data over-collection. Using the consent mechanism provided by DEPA, it is easy for a data consumer to ask for more data than what is strictly required for the service being offered to the data principal. It is envisaged that data consumers will be restricted to using only one amongst a set of pre-defined consent templates, but it is challenging to define and enforce the use of such templates.
 
 ## Confidential Clean Rooms
 
-Confidential clean rooms are a new privacy construct in DEPA designed to address these concerns. A confidential clean room is a secure, isolated execution environment where sensitive information from one or more data providers can be processed with technical security and privacy guarantees. Confidential clean rooms can be set up and operated by data consumers, their subsidiaries, technology service providers, or independent third parties. 
+Confidential clean rooms are a new privacy construct in DEPA designed to address these concerns. A confidential clean room is a secure, isolated execution environment where sensitive information from one or more data providers can be processed with technical security and privacy guarantees. Confidential clean rooms can be set up and operated by data consumers, their subsidiaries, technology service providers, or independent third parties.
 
-Clean rooms invert the computation model in DEPA. Instead of receiving raw sensitive information, data consumers deploy their workloads/services in clean rooms. Subsequently, requests to process data are sent to the clean rooms. Requests contain encrypted data from one or more data providers along with consent artifacts. Clean rooms decrypt and process this data in accordance with the data principal’s consent and a data usage policy which defines valid outcomes that can be released to the data consumer. Making data usage policy and its enforcement explicit in the service architecture address data leakage challenges and simplifies the process of proving compliance to regulators and/or external auditors, which in turn can help reduce the over cost of operationalizing compliant services. 
+Clean rooms invert the computation model in DEPA. Instead of receiving raw sensitive information, data consumers deploy their services in clean room environment and send requests to process data to the clean rooms. Requests contain encrypted data from one or more data providers along with consent artifacts obtained from the data principal. Clean rooms guarantee that data is processed in accordance with an artifact called a *data usage policy*. The data usage policy is a set of rules machine checkable rules which defines if, when and how data can be processed; it may be viewed as an extension of the consent obtained from the data principal. Making a data usage policy and its enforcement explicit in the service architecture simplifies the process of proving compliance to regulators and/or external auditors. This in turn can help reduce the over cost of operating compliant services. 
 
 ![Confidential Clean Rooms in DEPA](confidential-clean-room-depa.png)
 
-The clean room service architecture guidelines defined in this document outlines an approach for architecting services to ensure that data is processed in accordance with consent and a data usage policy *while minimizing trust in the data consumer and their infrastructure*. The guidelines are broadly based on the principle of *minimal trust* i.e., ensure that the service continues to process data according to consent and data usage policies even if components in the service are breached or individuals within the data consumer organization are compromised. 
-
-Trust in service components is minimized by decoupling the core business logic of services from operations such as auditing and management of secrets and hosting the business logic in a *sandboxed environment *where all ingress and egress communication is monitored and checked for violations of consent and data usage policy. Trust in entities such as service administrators may be minimized using strict access control augmented with technologies such as confidential computing. 
+The clean room service architecture specified in this document is based on the principle of compliance-by-design. It advocates for services to be explicitly partitioned into two sets of independent components, (a) components that implement business logic of a service such as analyzing statements or computing a credit score, and (b) implementation of the clean room which enforces the data usage policy. With this separation, compliance certification can be reduced to one-time certification of the implementation of the clean room, as opposed to a full audit and certification of every version of the service including the business logic, which changes frequently. 
 
 ## Clean Room Service Architecture
 
@@ -120,7 +116,6 @@ is_response_compliant {
 
 ```
 
-
 ## Sandbox
 
 Each CRMS hosts its business logic containers in a sandboxed environment, which monitors communication to and from the business logic containers and enforce compliance with consent and data usage policy. 
@@ -132,6 +127,10 @@ The proxy should ensure that all communication between microservices within the 
 The proxy should limit any unexpected traffic to and from business logic containers. For example, the proxy may only permit HTTP traffic, and drop all non-HTTP TCP communications. 
 
 Each CRMS should be configured to run businreess logic containers should with the least set of capabilities required to execute their tasks. For example, business logic containers should run as non-root users and should not get capabilities such as the ability to mount file systems, open non-TCP sockets, or any other capability that may be used to exfiltrate data without going through the proxy. 
+
+## Anonymization
+
+A CRS should anonymize input data as much as possible before using it for making decisions. Anonymization may involve scrubbing identifiers such as names and generalizing pseudo-identifiers such as addresses and zip codes. Anonymizing data reduces the risk of data leakage through the final decision, and through cross-service communication.  
 
 ## Identity and Access Control
 
