@@ -130,7 +130,7 @@ Each CRMS should be configured to run businreess logic containers should with th
 
 ## Anonymization
 
-A CRS should anonymize input data as much as possible before using it for making decisions. Anonymization may involve scrubbing identifiers such as names and generalizing pseudo-identifiers such as addresses and zip codes. Anonymizing data reduces the risk of data leakage through the final decision, and through cross-service communication.  
+A CRS should anonymize input data as much as possible before using it for making decisions. Anonymization may involve scrubbing identifiers such as names, generalizing pseudo-identifiers such as addresses and zip codes, and mapping the data principal to a cohort using an ML model. Anonymizing data reduces the risk of data leakage through the final decision, and through cross-service communication. The specific anonymization technique to be used for different datasets and domains is outside the scope of this document.
 
 ## Identity and Access Control
 
