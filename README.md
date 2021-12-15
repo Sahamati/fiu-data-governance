@@ -81,14 +81,32 @@ A sample policy is described below.
 default allowIngress = false
 default allowEgress = false
 
-# Allow if all consent checks pass
-allowIngress {
+# By default, the policy denies all requests.
+default allow_incoming_request = false
+default allow_incoming_response = false
+default allow_outgoing_request = false
+default allow_outgoing_response = false
+
+# Rule that checks if an incoming request is allowed.
+allow_incoming_request {
+  # The policy allows an incoming request if all consent checks pass.
   is_consent_active
   is_signature_verified
 }
 
-allowEgress {
+# Rule that checks if an outgoing response is allowed.
+allow_outgoing_response {
   is_response_compliant
+}
+
+# Rule that checks if an outgoing request is allowed.
+allow_outgoing_request {
+  ...
+}
+
+# Rule that checks if an incoming response is allowed.
+allow_incoming_response {
+  ...
 }
 
 # Check consent start and expiry dates against current time
@@ -115,6 +133,8 @@ is_response_compliant {
 }
 
 ```
+
+This policy checks all incoming and outgoing requests and responses from a CRS. For every incoming request, it checks that the requests carries with it a signed consent from a valid consent manager, and that the consent is still active. For outgoing responses (generated in response to an incoming requests), it checks that the response to a request is _minimal_ i.e., does not reveal any information beyond what is necessary for the FIU to service the request. 
 
 ## Sandbox
 
