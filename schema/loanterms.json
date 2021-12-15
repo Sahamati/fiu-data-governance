@@ -45,9 +45,6 @@
       },
       "tenure": { 
         "$ref": "https://github.com/juspay/lsp-lender-protocol-specification/blob/master/Core/schema/Version%200.0.1/loantenure.json"
-      },
-      "charges": {
-        "$ref": "https://github.com/juspay/lsp-lender-protocol-specification/blob/master/Core/schema/Version%200.0.1/charges.json"
       }
     }
   }
