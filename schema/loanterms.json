@@ -1,0 +1,54 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#", 
+    "$id": "https://github.com/juspay/lsp-lender-protocol-specification/blob/master/Core/schema/Version%200.0.1/loanterms.json",  
+    "type": "object",
+    "required": [
+      "requestedAmount",
+      "currency"
+    ],
+    "properties": {
+      "requestedAmount": { 
+        "type": "string",
+        "examples": [
+          "50000.00"
+        ]
+      },
+      "currency": {
+        "type": "string",
+        "examples": [
+          "INR"
+        ]
+      },
+      "sanctionedAmount": {
+        "type": "string",
+        "examples": [
+          "5000.00"
+        ]
+      },
+      "interestType": {
+        "type": "string",
+        "enum": [
+          "FIXED","FLOATING"
+        ]
+      },
+      "interestRate": {
+        "type": "string",
+        "examples": [
+          "6.50"
+        ]
+      },
+      "totalAmount":{
+        "type":"string"
+      },
+      "interestAmount":{
+        "type":"string"
+      },
+      "tenure": { 
+        "$ref": "https://github.com/juspay/lsp-lender-protocol-specification/blob/master/Core/schema/Version%200.0.1/loantenure.json"
+      },
+      "charges": {
+        "$ref": "https://github.com/juspay/lsp-lender-protocol-specification/blob/master/Core/schema/Version%200.0.1/charges.json"
+      }
+    }
+  }
+  
