@@ -20,6 +20,7 @@ Confidential clean rooms are a new privacy construct in DEPA which enforce that 
 | CCR | Confidential Clean Room |
 | CRS | Clean Room Service |
 | CRMS | Clean Room Micro-service |
+|||
 
 ## DEPA, Privacy and Compliance
 
@@ -33,11 +34,11 @@ A second related challenge is data over-collection. Using the consent mechanism 
 
 Confidential clean rooms are a new privacy construct in DEPA designed to address these concerns. A confidential clean room is a secure, isolated execution environment where sensitive information from one or more data providers can be processed with technical security and privacy guarantees. Confidential clean rooms can be set up and operated by data consumers, their subsidiaries, technology service providers, or independent third parties.
 
-Clean rooms invert the computation model in DEPA. Instead of receiving raw sensitive information, data consumers deploy their services in clean room environment and send requests to process data to the clean rooms. Requests contain encrypted data from one or more data providers along with consent artifacts obtained from the data principal. Clean rooms guarantee that data is processed in accordance with an artifact called a *data usage policy*. The data usage policy is a set of rules machine checkable rules which defines if, when and how data can be processed; it may be viewed as an extension of the consent obtained from the data principal. Making a data usage policy and its enforcement explicit in the service architecture simplifies the process of proving compliance to regulators and/or external auditors. This in turn can help reduce the over cost of operating compliant services. 
+Clean rooms invert the computation model in DEPA. Instead of receiving raw sensitive information, data consumers deploy their services in clean room environment and send requests to process data to the clean rooms. Requests contain encrypted data from one or more data providers along with consent artifacts obtained from the data principal. Clean rooms guarantee that data is processed in accordance with an artifact called a *data usage policy*. The data usage policy is a set of rules machine checkable rules which defines if, when and how data can be processed; it can be viewed as an extension of the consent obtained from the data principal. Making a data usage policy and its enforcement explicit in the service architecture simplifies the process of proving compliance to regulators and/or external auditors. This in turn can help reduce the over cost of operating compliant services. 
 
 ![Confidential Clean Rooms in DEPA](confidential-clean-room-depa.png)
 
-The clean room service architecture specified in this document is based on the principle of compliance-by-design. It advocates for services to be explicitly partitioned into two sets of independent components, (a) components that implement business logic of a service such as analyzing statements or computing a credit score, and (b) implementation of the clean room which enforces the data usage policy. With this separation, compliance certification can be reduced to one-time certification of the implementation of the clean room, as opposed to a full audit and certification of every version of the service including the business logic, which changes frequently. 
+The clean room service architecture specified in this document is based on the principle of compliance-by-design. It advocates for services to be explicitly partitioned into two sets of independent components, (a) components that implement business logic of a service such as analyzing statements or computing a credit score, and (b) the clean room itself which enforces the data usage policy. With this separation, compliance certification can be reduced to relatively less frequent certification of the clean room implementation, as opposed to a full audit and certification of every version of the service including the business logic, which changes frequently. 
 
 ## Clean Room Service Architecture
 
@@ -150,7 +151,7 @@ Each CRMS should be configured to run businreess logic containers should with th
 
 ## Anonymization
 
-A CRS should anonymize input data as much as possible before using it for making decisions. Anonymization may involve scrubbing identifiers such as names, generalizing pseudo-identifiers such as addresses and zip codes, and mapping the data principal to a cohort using an ML model. Anonymizing data reduces the risk of data leakage through the final decision, and through cross-service communication. The specific anonymization technique to be used for different datasets and domains is outside the scope of this document.
+A CRS should anonymize input data as much as possible before using it for making decisions. Anonymization may involve scrubbing identifiers such as names, generalizing pseudo-identifiers such as addresses and zip codes, and mapping the data principal to a cohort using an ML model. Anonymizing data reduces the risk of data leakage through the final decision, and through cross-service communication. The specific anonymization protocol to be used for different datasets and domains is outside the scope of this document.
 
 ## Identity and Access Control
 
@@ -181,3 +182,7 @@ Implementations of the log must be able to detect and potentially tolerate data 
 Access to the log must be restricted to CRMS in the CRS. 
 
 The CRMS should support an API for retrieving data from the log for audit and/or dispute resolution purposes. Any access to this API should require appropriate authorization e.g., a separate consent from the data principal or a signed request from an external auditor/dispute resolution body. 
+
+## Confidential Computing
+
+CRMS and associated services such as tamper-proof logging and key management may be deployed in hardware-based [confidential computing environments](https://confidentialcomputing.io/) (such as [AMD SEV VMs](https://www.amd.com/system/files/TechDocs/SEV-SNP-strengthening-vm-isolation-with-integrity-protection-and-more.pdf)). Confidential computing can provide stronger security and privacy guarantees by reducing trust in service and cloud administrators. 
