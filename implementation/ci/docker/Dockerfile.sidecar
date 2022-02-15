@@ -1,0 +1,66 @@
+# Image for building the sidecar executable.
+FROM ubuntu:20.04 AS build-image
+
+# Install prerequisities.
+RUN apt-get update -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install \
+    software-properties-common build-essential ca-certificates \
+    libssl-dev pkg-config curl wget apt-transport-https
+
+# Install powershell.
+RUN wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb && \
+    dpkg -i packages-microsoft-prod.deb && apt-get update && \
+    apt-get install -y powershell
+
+WORKDIR /root
+
+# Install Rust.
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Update Rust.
+RUN rustup update stable
+RUN rustup default stable
+
+ARG RUSTFLAGS=""
+
+# Optimization to cache building dependencies of the CCR sidecar.
+RUN USER=root cargo new --bin ccr-sidecar
+COPY src/ccr-sidecar/proto ccr-sidecar/proto
+RUN pwsh -c ccr-sidecar/proto/sync-proto.ps1
+COPY src/ccr-sidecar/build.rs ccr-sidecar/build.rs
+COPY src/ccr-sidecar/Cargo.toml ccr-sidecar/Cargo.toml
+RUN cd ccr-sidecar && \
+    RUSTFLAGS=${RUSTFLAGS} cargo build --release --workspace
+RUN rm ccr-sidecar/src/*.rs
+RUN rm ccr-sidecar/target/release/deps/ccr_sidecar*
+
+# Build the CCR sidecar.
+COPY src/ccr-sidecar/src ccr-sidecar/src
+RUN cd ccr-sidecar && \
+    RUSTFLAGS=${RUSTFLAGS} cargo build --release --workspace
+
+# Optimize the final image size by creating an image with only the sidecar executable.
+FROM ubuntu:20.04
+
+# Install prerequisities.
+RUN apt-get -y update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install \
+    software-properties-common build-essential ca-certificates \
+    libssl-dev pkg-config curl wget apt-transport-https
+# Upgrade packages.
+RUN apt upgrade -y
+
+WORKDIR /root
+
+COPY --from=build-image /root/ccr-sidecar/target/release/ccr-sidecar ./sidecar
+RUN chmod 777 .
+
+ARG PORT=8281
+
+ENV SIDECAR_PORT=${PORT}
+EXPOSE ${PORT}
+
+ENV RUST_BACKTRACE=1
+
+ENTRYPOINT ["./sidecar"]

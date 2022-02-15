@@ -1,0 +1,186 @@
+admin:
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 15000
+
+static_resources:
+  listeners:
+  # Inbound network traffic listener.
+  - address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 15006
+    listener_filters:
+    - name: "envoy.filters.listener.original_dst"
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst
+    - name: "envoy.filters.listener.http_inspector"
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.filters.listener.http_inspector.v3.HttpInspector
+    filter_chains:
+    - filter_chain_match:
+        application_protocols: [http/1.1]
+      filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config: 
+          '@type': "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager"
+          stat_prefix: inbound_proxy
+          forward_client_cert_details: ALWAYS_FORWARD_ONLY
+          route_config: 
+            name: all
+            virtual_hosts:
+            - name: confidential-service
+              domains: ["*"]
+              routes:
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: confidential-service
+          http_filters:
+          - name: envoy.filters.http.lua
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+              inline_code: |
+                -- Add a request header to denote an incoming request.
+                function envoy_on_request(request_handle)
+                  request_handle:headers():add("x-ccr-is-incoming", "true")
+                end
+          - name: envoy.filters.http.ext_proc
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_proc.v3.ExternalProcessor
+              # Not implemented by Envoy yet. Once supported it will not require a 'message_timeout'.
+              async_mode: false              
+              failure_mode_allow: false
+              processing_mode:
+                request_header_mode: "SEND"
+                request_body_mode: "BUFFERED"
+                request_trailer_mode: "SKIP"
+                response_header_mode: "SEND"
+                response_body_mode: "BUFFERED"
+                response_trailer_mode: "SKIP"
+              # TODO: for now a sufficiently large timeout until we have async mode support.
+              message_timeout: 10000s
+              grpc_service:
+                envoy_grpc:
+                  cluster_name: ccr-sidecar
+          - name: envoy.filters.http.router
+          access_log:
+          - name: envoy.access_loggers.stdout
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+    - filter_chain_match:
+      filters:
+      - name: envoy.filters.network.tcp_proxy
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+          cluster: black-hole
+          stat_prefix: ingress_tcp
+  # Outbound network traffic listener.
+  - address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 15001
+    listener_filters:
+    - name: "envoy.filters.listener.original_dst"
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst
+    - name: "envoy.filters.listener.http_inspector"
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.filters.listener.http_inspector.v3.HttpInspector
+    filter_chains:
+    - filter_chain_match:
+        application_protocols: [http/1.1]
+      filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config: 
+          '@type': "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager"
+          stat_prefix: outbound_proxy
+          route_config: 
+            name: all
+            virtual_hosts:
+            # Endpoints allowed to egress.
+            - name: statement-analysis-service
+              domains: ["statement-analysis:8000"]
+              routes:
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: statement-analysis-service
+          http_filters:
+          - name: envoy.filters.http.ext_proc
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_proc.v3.ExternalProcessor
+              # Not implemented by Envoy yet. Once supported it will not require a 'message_timeout'.
+              async_mode: false
+              failure_mode_allow: false
+              processing_mode:
+                request_header_mode: "SEND"
+                request_body_mode: "BUFFERED"
+                request_trailer_mode: "SKIP"
+                response_header_mode: "SEND"
+                response_body_mode: "BUFFERED"
+                response_trailer_mode: "SKIP"
+              # TODO: for now a sufficiently large timeout until we have async mode support.
+              message_timeout: 10000s
+              grpc_service:
+                envoy_grpc:
+                  cluster_name: ccr-sidecar
+          - name: envoy.filters.http.router
+          access_log:
+          - name: envoy.access_loggers.stdout
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+    - filter_chain_match:
+      filters:
+      - name: envoy.filters.network.tcp_proxy
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+          cluster: black-hole
+          stat_prefix: egress_tcp
+  clusters:
+  - name: confidential-service
+    type: ORIGINAL_DST
+    lb_policy: CLUSTER_PROVIDED
+    upstream_bind_config:
+      source_address:
+        address: 127.0.0.6
+        port_value: 0
+  - name: statement-analysis-service
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: statement-analysis
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: statement-analysis
+                port_value: 8000
+  - name: black-hole
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+  - name: ccr-sidecar
+    type: STATIC
+    connect_timeout: 0.25s
+    http2_protocol_options: {}
+    load_assignment:
+      cluster_name: ccr-sidecar
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 0.0.0.0
+                port_value: 8281
+    # health_checks:
+    #   - timeout: 1s
+    #     interval: 5s
+    #     interval_jitter: 1s
+    #     no_traffic_interval: 5s
+    #     unhealthy_threshold: 1
+    #     healthy_threshold: 3
+    #     grpc_health_check:
+    #       service_name: "envoy.service.ext_proc.v3.ExternalProcessor"
+    #       authority: "server.domain.com"

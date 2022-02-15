@@ -1,0 +1,22 @@
+# Configuration for the certificate registry service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: certificate-registry
+  labels:
+    app: certificate-registry
+    service: certificate-registry
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 8080
+  selector:
+    app: certificate-registry
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: certificate-registry

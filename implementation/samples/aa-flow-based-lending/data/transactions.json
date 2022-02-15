@@ -1,0 +1,165 @@
+{
+  "type": "SAVINGS",
+  "maskedAccNumber": "********1234",
+  "version": "1.1.2",
+  "linkedAccRef": "ref74343876876513",
+  "Profile": {
+    "Holders": {
+      "type": "single",
+      "Holder": [
+        {
+          "name": "John Doe",
+          "dob": "1989-10-16",
+          "mobile": "9876543210",
+          "nominee": "REGISTERED",
+          "landline": "0117654321",
+          "address": "Mi Casa, New Delhi, India",
+          "email": "john@doe.com",
+          "pan": "AGHDS9898T",
+          "ckycConpliance": "true"
+        }
+      ]
+    }
+  },
+  "Summary": {
+    "currentBalance": 523564,
+    "currency": "INR",
+    "exchangeRate": "1",
+    "balanceDataTime": "2021-03-11T11:39:57.153Z",
+    "type": "SAVINGS",
+    "branch": "Hauz Khas",
+    "facility": "OD",
+    "ifscCode": "SBIN00001",
+    "micrCode": "SBIN00002",
+    "openingDate": "2001-10-16",
+    "currentODLimit": "1024",
+    "drawingLimit": "4096",
+    "status": "active",
+    "Pending": [
+      {
+        "transactionType": "CREDIT",
+        "amount": "25000"
+      },
+      {
+        "transactionType": "DEBIT",
+        "amount": "10000"
+      }
+    ]
+  },
+  "Transactions": {
+    "startDate": "2021-01-01",
+    "endData": "2021-01-31",
+    "Transaction": [
+      {
+        "type": "CREDIT",
+        "mode": "ATM",
+        "amount": 5402,
+        "currentBalance": 505402,
+        "transactionTimestamp": "2021-01-01 17:48:34.000503",
+        "valueDate": "2021-01-01",
+        "txnID": 490963,
+        "narration": "ABC Pharmacy",
+        "reference": 85619
+      },
+      {
+        "type": "DEBIT",
+        "mode": "CARD",
+        "amount": 5162,
+        "currentBalance": 500240,
+        "transactionTimestamp": "2021-01-01 12:29:39.000571",
+        "valueDate": "2021-01-01",
+        "txnID": 376856,
+        "narration": "Transfer",
+        "reference": 13383
+      },
+      {
+        "type": "CREDIT",
+        "mode": "CASH",
+        "amount": 9647,
+        "currentBalance": 509887,
+        "transactionTimestamp": "2021-01-01 17:38:00.000062",
+        "valueDate": "2021-01-01",
+        "txnID": 676441,
+        "narration": "Transfer",
+        "reference": 94907
+      },
+      {
+        "type": "DEBIT",
+        "mode": "CARD",
+        "amount": 1312,
+        "currentBalance": 508575,
+        "transactionTimestamp": "2021-01-01 13:42:09.000414",
+        "valueDate": "2021-01-01",
+        "txnID": 267847,
+        "narration": "Self",
+        "reference": 43288
+      },
+      {
+        "type": "DEBIT",
+        "mode": "OTHERS",
+        "amount": 9099,
+        "currentBalance": 499476,
+        "transactionTimestamp": "2021-01-02 12:20:55.000943",
+        "valueDate": "2021-01-02",
+        "txnID": 783112,
+        "narration": "YUM Restaurant",
+        "reference": 65734
+      },
+      {
+        "type": "CREDIT",
+        "mode": "CARD",
+        "amount": 4691,
+        "currentBalance": 504167,
+        "transactionTimestamp": "2021-01-02 13:47:32.000406",
+        "valueDate": "2021-01-02",
+        "txnID": 926059,
+        "narration": "Flight Ticket",
+        "reference": 21285
+      },
+      {
+        "type": "CREDIT",
+        "mode": "CASH",
+        "amount": 7051,
+        "currentBalance": 511218,
+        "transactionTimestamp": "2021-01-02 17:31:10.000117",
+        "valueDate": "2021-01-02",
+        "txnID": 210350,
+        "narration": "Transfer",
+        "reference": 71377
+      },
+      {
+        "type": "CREDIT",
+        "mode": "OTHERS",
+        "amount": 1778,
+        "currentBalance": 512996,
+        "transactionTimestamp": "2021-01-02 16:16:55.000026",
+        "valueDate": "2021-01-02",
+        "txnID": 588024,
+        "narration": "INOX",
+        "reference": 30999
+      },
+      {
+        "type": "CREDIT",
+        "mode": "ATM",
+        "amount": 5486,
+        "currentBalance": 518482,
+        "transactionTimestamp": "2021-01-03 11:13:14.000741",
+        "valueDate": "2021-01-03",
+        "txnID": 956841,
+        "narration": "ABC Pharmacy",
+        "reference": 73900
+      },
+      {
+        "type": "CREDIT",
+        "mode": "OTHERS",
+        "amount": 5082,
+        "currentBalance": 523564,
+        "transactionTimestamp": "2021-01-03 12:40:22.000832",
+        "valueDate": "2021-01-03",
+        "txnID": 396249,
+        "narration": "INOX",
+        "reference": 20333
+      }
+    ]
+  }
+}
