@@ -1,0 +1,49 @@
+{
+  "confidentialMode": true,
+  "consentStart": "2021-12-06T11:39:57.153Z",
+  "consentExpiry": "2025-12-06T11:39:57.153Z",
+  "consentMode": "VIEW",
+  "fetchType": "ONETIME",
+  "consentTypes": [
+    "PROFILE"
+  ],
+  "fiTypes": [
+    "DEPOSIT"
+  ],
+  "DataConsumer": {
+    "id": "fiu7465374537id"
+  },
+  "DataProvider": {
+    "id": "fip123456789id"
+  },
+  "Customer": {
+    "id": "customer_identifier@AA_identifier"
+  },
+  "Purpose": {
+    "code": "101",
+    "refUri": "https://api.rebit.org.in/aa/purpose/101.xml",
+    "text": "Wealth management service",
+    "Category": {
+      "type": "string"
+    }
+  },
+  "FIDataRange": {
+    "from": "2018-12-06T11:39:57.153Z",
+    "to": "2019-12-06T11:39:57.153Z"
+  },
+  "DataLife": {
+    "unit": "MONTH",
+    "value": 0
+  },
+  "Frequency": {
+    "unit": "HOUR",
+    "value": 0
+  },
+  "DataFilter": [
+    {
+      "type": "TRANSACTIONAMOUNT",
+      "operator": ">=",
+      "value": 20000
+    }
+  ]
+}

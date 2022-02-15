@@ -1,0 +1,21 @@
+# Pod deployment for the certificate registry service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: certificate-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: certificate-registry
+  template:
+    metadata:
+      labels:
+        app: certificate-registry
+    spec:
+      containers:
+      - name: certificate-registry-service
+        image: foo.azurecr.io/certificate-registry-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080

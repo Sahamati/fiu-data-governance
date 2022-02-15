@@ -1,0 +1,5 @@
+fastapi==0.68.0
+uvicorn[standard]==0.14.0
+six==1.16.0
+requests==2.26.0
+python-jose[cryptography]==3.3.0

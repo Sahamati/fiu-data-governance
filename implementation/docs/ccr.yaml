@@ -1,0 +1,444 @@
+swagger: '2.0'
+info:
+  title: Confidential Clean Room API
+  description: |-
+    # Summary
+  
+    The API defined here is implemented by Confidential Clean Rooms (CCRs) to enable processing requests in a confidential and privacy-preserving manner, and enforce that CCR-hosted services use data only in accordance with the data principal’s consent.
+
+    Learn more about CCRs [here](https://github.com/Sahamati/fiu-data-governance-guidelines).
+
+    ---
+  version: 0.0.1
+tags:
+- name: Data Processing
+  description: The API used by the CCR to confidentially process data.
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /api/ccr/key:
+    get:
+      tags:
+        - Data Processing
+      summary: Use this API to get a transaction id and the CCR public key material for that transaction.
+      description: |-
+        # Summary
+      
+        This API can be used to get a new transaction id (`txnid`) as well as corresponding public CCR key material (`KeyMaterial`). The `txnid` must be used when sending a new data processing request to the CCR. The `KeyMaterial` must be used to encrypt the data, so that the CCR can decrypt them upon receiving the corresponding data processing request.
+
+        ---
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/KeyResponse'
+  /api/ccr/process:
+    post:
+      tags:
+        - Data Processing
+      summary: Use this API to submit a request for confidential processing by the CCR.
+      description: |-
+        # Summary
+      
+        This API can be used to request for data to be processed inside the CCR according to a given purpose and data principal's consent. The request must use a transaction id (`txnid`) created by the CCR and encrypt one or more data using the public CCR key material (`KeyMaterial`).
+
+        ---
+      parameters:
+        - name: body
+          in: body
+          description: >-
+            Contains the data that need to be processed, the corresponding data principal's consent, and the public key material used to encrypt data.
+          required: true
+          schema:
+            $ref: '#/definitions/ProcessRequest'
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/ProcessResponse'
+        '202':
+          description: Accepted
+          schema:
+            $ref: '#/definitions/AcceptedProcessResponse'
+        '400':
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/BadRequest'
+        '403':
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/Forbidden'
+  /api/ccr/process/{txnid}:
+    get:
+      tags:
+        - Data Processing
+      summary: Use this API to retrieve the result of an asynchronous confidential processing request.
+      description: |-
+        # Summary
+      
+        This API can be used to retrieve the result of a confidential processing request that has been handled asynchronously by the CCR. The request must use the same transaction id (`txnid`) created by the CCR and associated with the original request.
+
+        _Note: this API is not yet supported in the current CCR prototype._
+
+        ---
+      parameters:
+        - name: txnid
+          in: path
+          required: true
+          type: string
+          description: The unique transaction identifier used per CCR request. Can be used to retrieve the result.
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/ProcessResponse'
+        '403':
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/Forbidden'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/NotFound'
+definitions:
+  KeyResponse:
+    type: object
+    description: >-
+      The response to a successful GET key request.
+    required:
+      - ver
+      - timestamp
+      - txnid
+      - KeyMaterial
+    properties:
+      ver:
+        type: string
+        description: The version of the API.
+        example: '1.0'
+      timestamp:
+        type: string
+        format: date-time
+        description: Creation timestamp of the message which will be updated at each leg.
+        example: '2018-12-06T11:39:57.153Z'
+      txnid:
+        type: string
+        description: The unique transaction identifier used per CCR request.
+        example: 3dd436f8-0747-4a8f-9001-375e419430be
+      KeyMaterial:
+        $ref: '#/definitions/KeyMaterial'
+  ProcessRequest:
+    type: object
+    description: >-
+        The confidential data processing request.
+    required:
+      - ver
+      - timestamp
+      - txnid
+      - payload
+      - Consent
+    properties:
+      ver:
+        type: string
+        description: The version of the API.
+        example: '1.0'
+      timestamp:
+        type: string
+        format: date-time
+        description: Creation timestamp of the message which will be updated at each leg.
+        example: '2018-12-06T11:39:57.153Z'
+      txnid:
+        type: string
+        description: The unique transaction identifier used per CCR request.
+        example: 3dd436f8-0747-4a8f-9001-375e419430be
+      payload:
+        type: array
+        description: >-
+          The payload contains one or more encrypted data to process confidentially in JSON format. Each data item is encrypted using the public CCR key material and can be decrypted by the CCR using the accompanying public key material.
+        items:
+          type: object
+          description: >-
+            List of one or more data to process confidentially. Each data item contains an identifier, the encrypted data (and accompanying optional metadata), as well as the corresponding public key material that the CCR can use to decrypt the data.
+          required:
+            - id
+            - data
+            - KeyMaterial
+          properties:
+            id:
+              type: string
+              description: The data identifier. This can be for example the identifier of the data principal.
+            data:
+              type: array
+              items:
+                type: object
+                description: Contains the encrypted data, as well as optional metadata.
+                required:
+                  - encryptedData
+                  - metadata
+                properties:
+                  encryptedData:
+                    type: string
+                    format: binary
+                    description: Contains the encrypted data.
+                  metadata:
+                    type: string
+                    description: Optional metadata accompanying the encrypted data in JSON format.
+                    example: '{"linkRefNumber":"XXXX-XXXX-XXXX","maskedAccNumber":"XXXXXXXX4020"}'
+            KeyMaterial:
+              $ref: '#/definitions/KeyMaterial'
+      Consent:
+        $ref: '#/definitions/Consent'
+  ProcessResponse:
+    type: object
+    description: >-
+        The response to a successful data processing request.
+    required:
+      - ver
+      - timestamp
+      - txnid
+      - result
+    properties:
+      ver:
+        type: string
+        description: The version of the API.
+        example: '1.0'
+      timestamp:
+        type: string
+        format: date-time
+        description: Creation timestamp of the message which will be updated at each leg.
+        example: '2018-12-06T11:39:57.153Z'
+      txnid:
+        type: string
+        description: The unique transaction identifier used per CCR request.
+        example: 3dd436f8-0747-4a8f-9001-375e419430be
+      result:
+        type: string
+        description: The data processing response in JSON format.
+        example: '{"score":72}'
+  AcceptedProcessResponse:
+    type: object
+    description: >-
+        The response to an accepted data processing request that will be processed asynchronously.
+    required:
+      - ver
+      - timestamp
+      - txnid
+    properties:
+      ver:
+        type: string
+        description: The version of the API.
+        example: '1.0'
+      timestamp:
+        type: string
+        format: date-time
+        description: Creation timestamp of the message which will be updated at each leg.
+        example: '2018-12-06T11:39:57.153Z'
+      txnid:
+        type: string
+        description: The unique transaction identifier used per CCR request. Can be used to retrieve the result.
+        example: 3dd436f8-0747-4a8f-9001-375e419430be
+  Consent:
+    type: object
+    required:
+      - signature
+      - consentArtefact
+    properties:
+      signature:
+        type: string
+        description: >-
+          JWS returned from the AA that can be used by the CCR to verify the consent details.
+      consentArtefact:
+        $ref: '#/definitions/ConsentArtefact'
+  ConsentArtefact:
+    type: object
+    required:
+      - txnid
+      - consentId
+      - status
+      - createTimestamp
+      - signedConsent
+      - ConsentUse
+    properties:
+      txnid:
+        type: string
+        description: The unique transaction identifier used for end-to-end traceability. 
+        example: 0b811819-9044-4856-b0ee-8c88035f8858
+        xml:
+          attribute: true
+      consentId:
+        type: string
+        description: The unique ID of the consent artefact.
+        example: XXXX-XXXX-XXXX-XXXX
+        xml:
+          attribute: true
+      status:
+        type: string
+        description: The current status of the consent.
+        enum:
+          - ACTIVE
+          - PAUSED
+          - REVOKED
+          - EXPIRED
+      createTimestamp:
+        type: string
+        format: date-time
+        description: The creation time of the consent artefact.
+        example: '2018-12-06T11:39:57.153Z'
+        xml:
+          attribute: true
+      signedConsent:
+        type: string
+        format: byte
+        description: >-
+          Signature of the ConsentDetail of the consent artefact. The signature is in the JWS Compact Serialization format, which is compact, URL-safe representation of a JWS. See ConsentDetail model in the AA spec for consent format.
+        example: eyJhbGciOiJSUzI1NiIsImtpZCI6IjQyNzE5MTNlLTdiOTMtNDlkZC05OTQ5LTFjNzZmZjVmYzVjZiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19.ew0KICAgICAgICAiY29uc2VudFN0YXJ0IjogIjIwMTktMDUtMjhUMTE6Mzg6MjAuMzgwKzAwMDAiLA0KICAgICAgICAiY29uc2VudEV4cGlyeSI6ICIyMDIwLTA1LTI4VDExOjM4OjIwLjM4MSswMDAwIiwNCiAgICAgICAgImNvbnNlbnRNb2RlIjogIlZJRVciLA0KICAgICAgICAiZmV0Y2hUeXBlIjogIk9ORVRJTUUiLA0KICAgICAgICAiY29uc2VudFR5cGVzIjogWw0KICAgICAgICAgICAgIlBST0ZJTEUiLA0KICAgICAgICAgICAgIlNVTU1BUlkiLA0KICAgICAgICAgICAgIlRSQU5TQUNUSU9OUyINCiAgICAgICAgXSwNCiAgICAgICAgImZpVHlwZXMiOiBbDQogICAgICAgICAgICAiREVQT1NJVCIsDQogICAgICAgICAgICAiVEVSTS1ERVBPU0lUIg0KICAgICAgICBdLA0KICAgICAgICAiRGF0YUNvbnN1bWVyIjogew0KICAgICAgICAgICAgImlkIjogImNvb2tpZWphci1hYUBmaW52dS5pbiIsDQogICAgICAgICAgICAidHlwZSI6ICJBQSINCiAgICAgICAgfSwNCiAgICAgICAgIkRhdGFQcm92aWRlciI6IHsNCiAgICAgICAgICAgICJpZCI6ICJCQVJCMEtJTVhYWCIsDQogICAgICAgICAgICAidHlwZSI6ICJGSVAiDQogICAgICAgIH0sDQogICAgICAgICJDdXN0b21lciI6IHsNCiAgICAgICAgICAgICJpZCI6ICJkZW1vQGZpbnZ1Ig0KICAgICAgICB9LA0KICAgICAgICAiQWNjb3VudHMiOiBbDQogICAgICAgICAgICB7DQogICAgICAgICAgICAgICAgImZpVHlwZSI6ICJERVBPU0lUIiwNCiAgICAgICAgICAgICAgICAiZmlwSWQiOiAiQkFSQjBLSU1YWFgiLA0KICAgICAgICAgICAgICAgICJhY2NUeXBlIjogIlNBVklOR1MiLA0KICAgICAgICAgICAgICAgICJsaW5rUmVmTnVtYmVyIjogIlVCSTQ4NTk2NDU3OSIsDQogICAgICAgICAgICAgICAgIm1hc2tlZEFjY051bWJlciI6ICJVQkk4NTIxNzg4MTI3OSINCiAgICAgICAgICAgIH0sDQogICAgICAgICAgICB7DQogICAgICAgICAgICAgICAgImZpVHlwZSI6ICJERVBPU0lUIiwNCiAgICAgICAgICAgICAgICAiZmlwSWQiOiAiQkFSQjBLSU1YWFgiLA0KICAgICAgICAgICAgICAgICJhY2NUeXBlIjogIlNBVklOR1MiLA0KICAgICAgICAgICAgICAgICJsaW5rUmVmTnVtYmVyIjogIlVCSTQ4NTk2NDUiLA0KICAgICAgICAgICAgICAgICJtYXNrZWRBY2NOdW1iZXIiOiAiVUJJODUyMTc4ODEyIg0KICAgICAgICAgICAgfQ0KICAgICAgICBdLA0KICAgICAgICAiUHVycG9zZSI6IHsNCiAgICAgICAgICAgICJjb2RlIjogIjEwMSIsDQogICAgICAgICAgICAicmVmVXJpIjogImh0dHBzOi8vYXBpLnJlYml0Lm9yZy5pbi9hYS9wdXJwb3NlLzEwMS54bWwiLA0KICAgICAgICAgICAgInRleHQiOiAiV2VhbHRoIG1hbmFnZW1lbnQgc2VydmljZSIsDQogICAgICAgICAgICAiQ2F0ZWdvcnkiOiB7DQogICAgICAgICAgICAgICAgInR5cGUiOiAicHVycG9zZUNhdGVnb3J5VHlwZSINCiAgICAgICAgICAgIH0NCiAgICAgICAgfSwNCiAgICAgICAgIkZJRGF0YVJhbmdlIjogew0KICAgICAgICAgICAgImZyb20iOiAiMjAxOS0wNS0yOFQxMTozODoyMC4zODMrMDAwMCIsDQogICAgICAgICAgICAidG8iOiAiMjAyMC0wNS0yOFQxMTozODoyMC4zODErMDAwMCINCiAgICAgICAgfSwNCiAgICAgICAgIkRhdGFMaWZlIjogew0KICAgICAgICAgICAgInVuaXQiOiAiTU9OVEgiLA0KICAgICAgICAgICAgInZhbHVlIjogNA0KICAgICAgICB9LA0KICAgICAgICAiRnJlcXVlbmN5Ijogew0KICAgICAgICAgICAgInVuaXQiOiAiSE9VUiIsDQogICAgICAgICAgICAidmFsdWUiOiA0DQogICAgICAgIH0sDQogICAgICAgICJEYXRhRmlsdGVyIjogWw0KICAgICAgICAgICAgew0KICAgICAgICAgICAgICAgICJ0eXBlIjogIlRSQU5TQUNUSU9OQU1PVU5UIiwNCiAgICAgICAgICAgICAgICAib3BlcmF0b3IiOiAiPiIsDQogICAgICAgICAgICAgICAgInZhbHVlIjogIjIwMDAwIg0KICAgICAgICAgICAgfQ0KICAgICAgICBdDQogICAgfQ.O3KPh-eTpW2w47QXYidOBe1Hk2y7djVAEcOnZyRRvxQ3cY18-9ZWiodF16jff-e7yNQgsYZpAy95Fx2Fft8LoYugkYh9_6qHiG_7LCtW8Ng4nCMgZM3Wwsj11ks1msrK5C1ksPrGlTkFhm9-FufNkPTAlW76_5Sb8G_lOsIj1lB8TrvKpOvPlhEIgsS4WBNdPfv3SBqTV2suw2LvkX3QTilqwuMgXMkrm9-RYL90fweX_yyoyaBWHOJNQaKNuQWPpoRRNHGOx3v4_QiwgrELdfeTVtKn6R_AsfaBoEthQ3wrc8tY1q0Wx5j0x18NdU2R2C26dHyZ9M11dEH99psA1A
+      ConsentUse:
+        type: object
+        description: Section defining the parameters for consent tracking
+        required:
+          - count
+          - lastUseDateTime
+          - logUri
+        properties:
+          count:
+            type: number
+            description: The number of times the consent has been used.
+            example: 1
+            xml:
+              attribute: true
+          lastUseDateTime:
+            type: string
+            format: date-time
+            description: The last date and time that the consent was used.
+            example: '2018-12-06T11:39:57.153Z'
+            xml:
+              attribute: true
+          logUri:
+            type: string
+            description: Used for logging. It can can be any valid URI including an email address.
+            xml:
+              attribute: true
+  KeyMaterial:
+    type: object
+    required:
+      - cryptoAlg
+      - curve
+      - params
+      - DHPublicKey
+      - nonce
+    description: >-
+        The public CCR key material that can be used for application-level encryption. Use the key values and parameters to derive the session key for data encryption.
+    properties:
+      cryptoAlg:
+        type: string
+        description: >-
+          Specifies the cryptographic standard algorithm used for encrypting/decrypting the financial information. Currently ECDH is the crypto algorithm that is supported.
+        example: ECDH
+      curve:
+        type: string
+        description: Currently Curve25519 is supported.
+        example: Curve25519
+      params:
+        type: string
+        description: >-
+          Define the public parameters used for initializing the encryption/decryption algorithm with common attributes. It is a Key-Value pair separated by ; (semi colon).
+      DHPublicKey:
+        type: object
+        required:
+          - expiry
+        description: Contain the Diffie-Hellman(DH)  public parameters information.
+        properties:
+          expiry:
+            type: string
+            format: date-time
+            description: Expiry time for DH public parameters.
+            example: '2019-06-01T09:58:50.505Z'
+          Parameters:
+            type: string
+            description: >-
+              Define the Diffie-Hellman(DH)  public parameters used to calculate session (data encryption) key. For example: Ephemeral public key.
+          KeyValue:
+            type: string
+            format: byte
+            description: The value of DH public parameters.
+      nonce:
+        type: string
+        description: >-
+          Nonce is a random string generated every time during the publishing of Ephemeral public key to ensure that old communications cannot be reused in replay attacks. Unlike random numbers, random strings do not require byte ordering. Hence session keys can be generated in a platform independent way.
+  ErrorResponse:
+    description: Generic Error Response. Specific Error Responses extend from this.
+    type: object
+    required:
+      - ver
+      - timestamp
+      - txnid
+      - errorCode
+      - errorMsg
+    properties:
+      ver:
+        type: string
+        description: The version of the API.
+        example: '1.0'
+        xml:
+          attribute: true
+      timestamp:
+        type: string
+        format: date-time
+        description: The response timestamp.
+        xml:
+          attribute: true
+        example: '2017-07-13T11:33:34.509Z'
+      txnid:
+        type: string
+        description: The transaction id of the request.
+        example: 0b811819-9044-4856-b0ee-8c88035f8858'
+        xml:
+          attribute: true
+      errorCode:
+        type: string
+        description: Error code indicating the problem with the request.
+        xml:
+          attribute: true
+      errorMsg:
+        type: string
+        description: Error message with additional details. Ensure no sensitive information is included in the error message.
+        example: Error code specific error message.
+  BadRequest:
+    description: >-
+      The CCR was not able to process the request because it was invalid.
+    allOf:
+      - $ref: '#/definitions/ErrorResponse'
+    properties:
+      errorCode:
+        type: string
+        enum:
+          - BadRequest
+        xml:
+          attribute: true
+  Forbidden:
+    description: >-
+      The request was forbidden. This typically happens because of a request or response that does not adhere to the given data principal's consent.
+    allOf:
+      - $ref: '#/definitions/ErrorResponse'
+    properties:
+      errorCode:
+        type: string
+        enum:
+          - Forbidden
+        xml:
+          attribute: true
+  NotFound:
+    description: >-
+      The CCR was not able to find the requested resource.
+    allOf:
+      - $ref: '#/definitions/ErrorResponse'
+    properties:
+      errorCode:
+        type: string
+        enum:
+          - NotFound
+        xml:
+          attribute: true
