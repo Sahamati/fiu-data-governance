@@ -1,0 +1,53 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../../base/business-rule-engine
+
+patches:
+- target:
+    kind: Deployment
+    name: business-rule-engine
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: business-rule-engine
+    spec:
+      template:
+        spec:
+          containers:
+          - name: business-rule-engine-service
+            image: ${IMAGE_PATH_PREFIX}/business-rule-engine-service:latest
+          - name: ccr-proxy
+            image: ${IMAGE_PATH_PREFIX}/ccr-proxy:latest
+          - name: ccr-sidecar
+            image: ${IMAGE_PATH_PREFIX}/ccr-sidecar:latest
+            env:
+            - name: BUNDLE_SERVICE_URL
+              value: ${BUNDLE_SERVICE_URL}
+            - name: BUNDLE_RESOURCE_PATH
+              value: "${IMAGE_PATH_PREFIX}/depa-policies:latest"
+            - name: BUNDLE_SERVICE_CREDENTIALS_SCHEME
+              value: ${BUNDLE_SERVICE_CREDENTIALS_SCHEME}
+            - name: BUNDLE_SERVICE_CREDENTIALS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: policy-bundle-credentials
+                  optional: true
+          - name: crypto-sidecar
+            image: ${IMAGE_PATH_PREFIX}/crypto-sidecar:latest
+          - name: ccr-skr-sidecar
+            image: ${IMAGE_PATH_PREFIX}/ccr-skr-sidecar:latest
+          - name: inmemory-keyprovider
+            image: ${IMAGE_PATH_PREFIX}/inmemory-keyprovider:latest
+          initContainers:
+          - name: ccr-init
+            image: ${IMAGE_PATH_PREFIX}/ccr-init:latest
+- target:
+    kind: Deployment
+    name: business-rule-engine
+  patch: |-
+    - op: remove
+      path: /spec/template/metadata/annotations/container.seccomp.security.alpha.kubernetes.io~1business-rule-engine-service

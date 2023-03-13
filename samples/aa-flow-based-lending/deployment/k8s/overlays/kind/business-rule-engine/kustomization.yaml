@@ -1,0 +1,55 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../../base/business-rule-engine
+
+patches:
+- target:
+    kind: Deployment
+    name: business-rule-engine
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: business-rule-engine
+    spec:
+      template:
+        spec:
+          containers:
+          - name: business-rule-engine-service
+            imagePullPolicy: Never
+          - name: ccr-proxy
+            imagePullPolicy: Never
+          - name: ccr-sidecar
+            imagePullPolicy: Never
+            env:
+            - name: BUNDLE_SERVICE_URL
+              value: "http://oci-registry"
+            - name: BUNDLE_RESOURCE_PATH
+              value: "localhost:5000/depa-policies:latest"
+          - name: crypto-sidecar
+            imagePullPolicy: Never
+          - name: ccr-skr-sidecar
+            imagePullPolicy: Never
+          - name: inmemory-keyprovider
+            imagePullPolicy: Never
+          initContainers:
+          - name: ccr-init
+            imagePullPolicy: Never
+- target:
+    kind: Deployment
+    name: business-rule-engine
+  patch: |-
+    - op: remove
+      path: /spec/template/metadata/annotations/container.seccomp.security.alpha.kubernetes.io~1business-rule-engine-service
+- target:
+    kind: Service
+    name: business-rule-engine
+  patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: business-rule-engine
+    spec:
+      type: ClusterIP

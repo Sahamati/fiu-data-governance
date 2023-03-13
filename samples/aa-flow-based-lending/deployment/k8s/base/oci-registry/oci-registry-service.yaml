@@ -1,0 +1,22 @@
+# Configuration for the oci registry service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: oci-registry
+  labels:
+    app: oci-registry
+    service: oci-registry
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 5000
+  selector:
+    app: oci-registry
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oci-registry

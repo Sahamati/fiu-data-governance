@@ -1,0 +1,133 @@
+{
+  "version": "1.0",
+  "containers": [
+    {
+      "containerImage": "${IMAGE_PATH_PREFIX}/ccr-init:latest",
+      "environmentVariables": [],
+      "command": [
+        "/bin/sh",
+        "setup-iptables.sh"
+      ]
+    },
+    {
+      "containerImage": "${IMAGE_PATH_PREFIX}/ccr-proxy:latest",
+      "command": [
+        "/bin/sh",
+        "bootstrap.sh"
+      ],
+      "environmentVariables": [
+        {
+          "name": "MAA_ENDPOINT",
+          "value": "sharedneu.neu.attest.azure.net",
+          "strategy": "string"
+        }
+      ]
+    },
+    {
+      "containerImage": "${IMAGE_PATH_PREFIX}/ccr-sidecar:latest",
+      "command": [
+        "/bin/sh",
+        "-c",
+        "./run.sh"
+      ],
+      "environmentVariables": [
+        {
+          "name": "POLICY_DATA",
+          "value": "${POLICY_DATA_CCE_POLICY}",
+          "strategy": "string"
+        },
+        {
+          "name": "BUNDLE_SERVICE_URL",
+          "value": ".*",
+          "strategy": "re2"
+        },
+        {
+          "name": "BUNDLE_RESOURCE_PATH",
+          "value": ".+",
+          "strategy": "re2"
+        },
+        {
+          "name": "BUNDLE_SERVICE_CREDENTIALS_SCHEME",
+          "value": ".*",
+          "strategy": "re2"
+        },
+        {
+          "name": "BUNDLE_SERVICE_CREDENTIALS_TOKEN",
+          "value": ".*",
+          "strategy": "re2"
+        },
+        {
+          "name": "PORT",
+          "value": "8281",
+          "strategy": "string"
+        }
+      ]
+    },
+    {
+      "containerImage": "${IMAGE_PATH_PREFIX}/crypto-sidecar:latest",
+      "command": [
+        "java",
+        "-Djava.security.egd=file:/dev/./urandom",
+        "-jar",
+        "/forwardsecrecy.jar"
+      ],
+      "environmentVariables": [
+        {
+          "name": "SERVER_PORT",
+          "value": "8283",
+          "strategy": "string"
+        },
+        {
+          "name": "APP_HOME",
+          "value": "/root",
+          "strategy": "string"
+        }
+      ]
+    },
+    {
+      "containerImage": "${IMAGE_PATH_PREFIX}/business-rule-engine-service:latest",
+      "command": [
+        "/bin/sh",
+        "-c",
+        "python3 main.py --host ${SERVICE_HOST} --port ${SERVICE_PORT} -v"
+      ],
+      "environmentVariables": [
+        {
+          "name": "SERVICE_HOST",
+          "value": "0.0.0.0",
+          "strategy": "string"
+        },
+        {
+          "name": "SERVICE_PORT",
+          "value": "8080",
+          "strategy": "string"
+        },
+        {
+          "name": "PYTHONUNBUFFERED",
+          "value": "1",
+          "strategy": "string"
+        },
+        {
+          "name": "SA_URL",
+          "value": ".+",
+          "strategy": "re2"
+        }
+      ]
+    },
+    {
+      "containerImage": "${IMAGE_PATH_PREFIX}/ccr-skr-sidecar:latest",
+      "command": [
+        "/bin/sh",
+        "skr.sh",
+        "ewogICAiY2VydGNhY2hlIjogewogICAgICAiZW5kcG9pbnQiOiAiYW1lcmljYXMudGVzdC5hY2NjYWNoZS5henVyZS5uZXQiLAogICAgICAidGVlX3R5cGUiOiAiU2V2U25wVk0iLAogICAgICAiYXBpX3ZlcnNpb24iOiAiYXBpLXZlcnNpb249MjAyMC0xMC0xNS1wcmV2aWV3IgogICB9Cn0=",
+        "8284"
+      ],
+      "environmentVariables": []
+    },
+    {
+      "containerImage": "${IMAGE_PATH_PREFIX}/inmemory-keyprovider:latest",
+      "environmentVariables": [],
+      "command": ["./sidecar"]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: financial-information-user
+  labels:
+    app: financial-information-user
+    service: financial-information-user
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8001
+    targetPort: 8001
+  selector:
+    app: financial-information-user
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: financial-information-user

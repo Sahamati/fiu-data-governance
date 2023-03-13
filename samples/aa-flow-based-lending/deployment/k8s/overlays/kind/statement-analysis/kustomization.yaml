@@ -1,0 +1,53 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../../base/statement-analysis
+
+patches:
+- target:
+    kind: Deployment
+    name: statement-analysis
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: statement-analysis
+    spec:
+      template:
+        spec:
+          containers:
+          - name: statement-analysis-service
+            imagePullPolicy: Never
+          - name: ccr-proxy
+            imagePullPolicy: Never
+          - name: ccr-sidecar
+            imagePullPolicy: Never
+            env:
+            - name: BUNDLE_SERVICE_URL
+              value: "http://oci-registry"
+            - name: BUNDLE_RESOURCE_PATH
+              value: "localhost:5000/depa-policies:latest"
+          - name: crypto-sidecar
+            imagePullPolicy: Never
+          - name: ccr-skr-sidecar
+            imagePullPolicy: Never
+          initContainers:
+          - name: ccr-init
+            imagePullPolicy: Never
+- target:
+    kind: Deployment
+    name: statement-analysis
+  patch: |-
+    - op: remove
+      path: /spec/template/metadata/annotations/container.seccomp.security.alpha.kubernetes.io~1statement-analysis-service
+- target:
+    kind: Service
+    name: statement-analysis
+  patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: statement-analysis
+    spec:
+      type: ClusterIP

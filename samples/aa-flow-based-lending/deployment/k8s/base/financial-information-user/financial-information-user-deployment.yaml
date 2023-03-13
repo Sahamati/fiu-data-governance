@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: financial-information-user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: financial-information-user
+  template:
+    metadata:
+      labels:
+        app: financial-information-user
+    spec:
+      containers:
+      - name: financial-information-user-service
+        image: foo.azurecr.io/financial-information-user-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8001
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
