@@ -1,0 +1,12 @@
+FROM kapilvaswani/confidential-envoy:latest
+
+RUN sudo apt-get install -y gettext
+
+WORKDIR "/home/envoy"
+
+COPY cmd/ccr-proxy/ccr-proxy-config.yaml ccr-proxy-config.yaml
+COPY cmd/ccr-proxy/ccr-proxy-config-debug.yaml ccr-proxy-config-debug.yaml
+COPY --chmod=755 cmd/ccr-proxy/bootstrap.sh bootstrap.sh
+COPY --chmod=755 cmd/ccr-proxy/wait-for-it.sh wait-for-it.sh
+
+USER "envoy"

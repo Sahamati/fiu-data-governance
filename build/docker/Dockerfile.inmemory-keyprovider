@@ -1,0 +1,50 @@
+# Image for building the sidecar executable.
+FROM golang:1.19.2 AS build-image
+
+# Install prerequisities.
+RUN apt-get update -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install \
+    software-properties-common build-essential
+
+RUN mkdir -p /root/inmemory-keyprovider
+WORKDIR /root/inmemory-keyprovider
+
+# Download dependencies. If go.mod/sum files are unchanged then layer caching optimization kicks in.
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+# Build the sidecar.
+WORKDIR /root
+COPY samples/aa-flow-based-lending/src/inmemory-keyprovider inmemory-keyprovider/
+
+WORKDIR /root/inmemory-keyprovider
+RUN go vet ./...
+RUN go build -o inmemory-keyprovider
+RUN chmod +x inmemory-keyprovider
+
+# Optimize the final image size by creating an image with only the sidecar executable.
+FROM ubuntu:20.04
+
+# Install prerequisities.
+RUN apt-get -y update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install \
+    software-properties-common build-essential ca-certificates \
+    libssl-dev pkg-config curl wget apt-transport-https jq
+# Upgrade packages.
+RUN apt upgrade -y
+
+# This command creates a user and a group with default permissions.
+# https://docs.docker.com/engine/reference/builder/#user
+USER 1337:1337
+
+WORKDIR /home/user
+
+COPY --chmod=0755 --from=build-image /root/inmemory-keyprovider/inmemory-keyprovider ./sidecar
+
+ARG PORT=8285
+
+ENV SIDECAR_PORT=${PORT}
+EXPOSE ${PORT}
+
+CMD ["./sidecar"]

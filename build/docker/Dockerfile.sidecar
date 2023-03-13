@@ -1,0 +1,55 @@
+# Image for building the sidecar executable.
+FROM golang:1.19.2 AS build-image
+
+# Install prerequisities.
+RUN apt-get update -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install \
+    software-properties-common build-essential
+
+RUN mkdir -p /root/ccr-sidecar
+WORKDIR /root/ccr-sidecar
+
+# Download dependencies. If go.mod/sum files are unchanged then layer caching optimization kicks in.
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+# Copy the CCR sidecar source.
+WORKDIR /root/ccr-sidecar
+COPY internal internal
+COPY cmd/ccr-sidecar cmd/ccr-sidecar
+
+# Build the CCR sidecar.
+RUN go vet ./...
+WORKDIR /root/ccr-sidecar/cmd/ccr-sidecar
+RUN go build -o ccr-sidecar
+RUN chmod +x ccr-sidecar
+
+# Run unit tests.
+WORKDIR /root/ccr-sidecar
+RUN go test ./...
+
+# Optimize the final image size by creating an image with only the sidecar executable.
+FROM ubuntu:20.04
+
+# Install prerequisities.
+RUN apt-get -y update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install \
+    software-properties-common build-essential ca-certificates \
+    libssl-dev pkg-config curl wget apt-transport-https jq
+# Upgrade packages.
+RUN apt upgrade -y
+
+# This command creates a user and a group with default permissions.
+# https://docs.docker.com/engine/reference/builder/#user
+USER 1337:1337
+
+WORKDIR /home/user
+
+COPY --chmod=0755 --from=build-image /root/ccr-sidecar/cmd/ccr-sidecar/ccr-sidecar ./ccr-sidecar
+COPY --chmod=0755 --from=build-image /root/ccr-sidecar/cmd/ccr-sidecar/run.sh ./run.sh
+
+ARG PORT=8281
+
+ENV SIDECAR_PORT=${PORT}
+EXPOSE ${PORT}
