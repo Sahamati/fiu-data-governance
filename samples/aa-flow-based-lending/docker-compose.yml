@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  account-aggregator:
+    image: account-aggregator-service
+    ports:
+      - "8000:8000"
+    environment:
+     - PYTHONUNBUFFERED=1
+  financial-information-user:
+    image: financial-information-user-service
+    ports:
+      - "8011:8001"
+    environment:
+     - PYTHONUNBUFFERED=1
+  crypto-sidecar:
+    image: crypto-sidecar
+    ports:
+      - "8283:8283"

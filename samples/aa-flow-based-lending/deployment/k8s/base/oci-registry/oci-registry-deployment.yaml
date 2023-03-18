@@ -1,0 +1,20 @@
+# Pod deployment for the oci registry service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oci-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oci-registry
+  template:
+    metadata:
+      labels:
+        app: oci-registry
+    spec:
+      containers:
+      - name: oci-registry-service
+        image: registry:2
+        ports:
+        - containerPort: 5000

@@ -1,0 +1,366 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "name": {
+      "defaultValue": "conf-business-rule-engine-aci",
+      "type": "string",
+      "metadata": {
+        "description": "Name for the container group"
+      }
+    },
+    "location": {
+      "defaultValue": "[resourceGroup().location]",
+      "type": "string",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "port": {
+      "defaultValue": 8080,
+      "type": "int",
+      "metadata": {
+        "description": "Port to open on the container and the public IP address."
+      }
+    },
+    "containerRegistry": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "The container registry login server."
+      }
+    },
+    "containerRegistryUsername": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "The container registry username."
+      }
+    },
+    "containerRegistryPassword": {
+      "defaultValue": "secureString",
+      "type": "secureString",
+      "metadata": {
+        "description": "The container registry password."
+      }
+    },
+    "imagePathPrefix": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "The path prefix to the images."
+      }
+    },
+    "restartPolicy": {
+      "defaultValue": "Never",
+      "allowedValues": [
+        "Always",
+        "Never",
+        "OnFailure"
+      ],
+      "type": "string",
+      "metadata": {
+        "description": "The behavior of Azure runtime if container has stopped."
+      }
+    },
+    "ccePolicy": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "cce policy"
+      }
+    },
+    "statementAnalysisUrl": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "URL of statement analysis service"
+      }
+    },
+    "policyData": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "Policy data JSON object"
+      }
+    },
+    "bundleServiceUrl": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "URL of the bundle registry service"
+      }
+    },
+    "bundleServiceCredentialsScheme": {
+      "defaultValue": "secureSring",
+      "type": "string",
+      "metadata": {
+        "description": "Authentication scheme"
+      }
+    },
+    "bundleServiceCredentialsToken": {
+      "defaultValue": "secureSring",
+      "type": "secureString",
+      "metadata": {
+        "description": "Token for authentication"
+      }
+    },
+    "dnsNameLabel": {
+      "defaultValue": "secureSring",
+      "type": "string",
+      "metadata": {
+        "description": "DNS name of this service"
+      }
+    },
+    "userAssignedIdentityId": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "The ARM ID of the user assigned identity that has pull access to the container registry for private images."
+      }
+    }
+  },
+  "variables": {
+    "imageRegistryCredentials": [
+      {
+        "server": "[parameters('containerRegistry')]",
+        "username": "[parameters('containerRegistryUsername')]",
+        "password": "[parameters('containerRegistryPassword')]",
+        "identity": "[if(equals(parameters('userAssignedIdentityId'),''), json('null'), parameters('userAssignedIdentityId'))]"
+      }
+    ],
+    "userAssignedIdentity": {
+      "type": "UserAssigned",
+      "userAssignedIdentities": {
+        "[parameters('userAssignedIdentityId')]": {}
+        }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[parameters('name')]",
+      "location": "[parameters('location')]",
+      "identity": "[if(equals(parameters('userAssignedIdentityId'),''), json('null'), variables('userAssignedIdentity'))]",
+      "properties": {
+        "confidentialComputeProperties": {
+          "ccePolicy": "[parameters('ccePolicy')]"
+        },
+        "initContainers": [
+          {
+            "name": "ccr-init",
+            "properties": {
+              "image": "[concat(parameters('imagePathPrefix'), '/ccr-init:latest')]",
+              "command": [
+                "/bin/sh",
+                "setup-iptables.sh"
+              ]
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "business-rule-engine-service",
+            "properties": {
+              "image": "[concat(parameters('imagePathPrefix'), '/business-rule-engine-service:latest')]",
+              "command": [
+                "/bin/sh",
+                "-c",
+                "python3 main.py --host ${SERVICE_HOST} --port ${SERVICE_PORT} -v"
+              ],
+              "environmentVariables": [
+                {
+                  "name": "SERVICE_HOST",
+                  "value": "0.0.0.0"
+                },
+                {
+                  "name": "SERVICE_PORT",
+                  "value": "8080"
+                },
+                {
+                  "name": "PYTHONUNBUFFERED",
+                  "value": "1"
+                },
+                {
+                  "name": "SA_URL",
+                  "value": "[parameters('statementAnalysisUrl')]"
+                }
+              ],        
+              "ports": [
+                {
+                  "port": "[parameters('port')]",
+                  "protocol": "TCP"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "1",
+                  "memoryInGB": "2"
+                }
+              }
+            }
+          },
+          {
+            "name": "ccr-proxy",
+            "properties": {
+              "image": "[concat(parameters('imagePathPrefix'), '/ccr-proxy:latest')]",
+              "command": [
+                "/bin/sh",
+                "bootstrap.sh"
+              ],
+              "environmentVariables": [
+                {
+                  "name": "MAA_ENDPOINT",
+                  "value": "sharedneu.neu.attest.azure.net"
+                }
+              ],
+              "ports": [
+                {
+                  "port": "15001",
+                  "protocol": "TCP"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "1.2",
+                  "memoryInGB": "2"
+                }
+              }
+            }
+          },
+          {
+            "name": "ccr-sidecar",
+            "properties": {
+              "image": "[concat(parameters('imagePathPrefix'), '/ccr-sidecar:latest')]",
+              "command": [
+                "/bin/sh",
+                "-c",
+                "./run.sh"
+              ],
+              "environmentVariables": [
+                {
+                  "name": "PORT",
+                  "value": "8281"
+                },
+                {
+                  "name": "POLICY_DATA",
+                  "value": "[parameters('policyData')]"
+                },
+                {
+                  "name": "BUNDLE_SERVICE_URL",
+                  "value": "[parameters('bundleServiceUrl')]"
+                },
+                {
+                  "name": "BUNDLE_RESOURCE_PATH",
+                  "value": "[concat(parameters('imagePathPrefix'), '/depa-policies:latest')]"
+                },
+                {
+                  "name": "BUNDLE_SERVICE_CREDENTIALS_SCHEME",
+                  "value": "[parameters('bundleServiceCredentialsScheme')]"
+                },
+                {
+                  "name": "BUNDLE_SERVICE_CREDENTIALS_TOKEN",
+                  "secureValue": "[parameters('bundleServiceCredentialsToken')]"
+                }
+              ],
+              "ports": [
+                {
+                  "port": "8281",
+                  "protocol": "TCP"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "0.2",
+                  "memoryInGB": "0.5"
+                }
+              }
+            }
+          },
+          {
+            "name": "crypto-sidecar",
+            "properties": {
+              "image": "[concat(parameters('imagePathPrefix'), '/crypto-sidecar:latest')]",
+              "ports": [
+                {
+                  "port": "8283",
+                  "protocol": "TCP"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "0.2",
+                  "memoryInGB": "0.5"
+                }
+              }
+            }
+          },
+          {
+            "name": "skr-sidecar",
+            "properties": {
+              "image": "[concat(parameters('imagePathPrefix'), '/ccr-skr-sidecar:latest')]",
+              "command" : [
+                "/bin/sh",
+                "skr.sh",
+                "ewogICAiY2VydGNhY2hlIjogewogICAgICAiZW5kcG9pbnQiOiAiYW1lcmljYXMudGVzdC5hY2NjYWNoZS5henVyZS5uZXQiLAogICAgICAidGVlX3R5cGUiOiAiU2V2U25wVk0iLAogICAgICAiYXBpX3ZlcnNpb24iOiAiYXBpLXZlcnNpb249MjAyMC0xMC0xNS1wcmV2aWV3IgogICB9Cn0=",
+                "8284"
+              ],
+              "environmentVariables": [],
+              "ports": [
+                {
+                  "port": "8284",
+                  "protocol": "TCP"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "0.2",
+                  "memoryInGB": "0.5"
+                }
+              }
+            }
+          },
+          {
+            "name": "inmemory-keyprovider",
+            "properties": {
+              "image": "[concat(parameters('imagePathPrefix'), '/inmemory-keyprovider:latest')]",
+              "ports": [
+                {
+                  "port": "8285",
+                  "protocol": "TCP"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "0.2",
+                  "memoryInGB": "0.5"
+                }
+              }
+            }
+          }
+        ],
+        "sku": "Confidential",
+        "osType": "Linux",
+        "restartPolicy": "[parameters('restartPolicy')]",
+        "ipAddress": {
+          "type": "Public",
+          "ports": [
+            {
+              "port": "[parameters('port')]",
+              "protocol": "TCP"
+            }
+          ],
+          "dnsNameLabel": "[parameters('dnsNameLabel')]"
+        },
+        "imageRegistryCredentials": "[if(and(equals(parameters('containerRegistryUsername'),''), equals(parameters('userAssignedIdentityId'),'')), json('null'), variables('imageRegistryCredentials'))]"
+      }
+    }
+  ],
+  "outputs": {
+    "containerIPv4Address": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('name'))).ipAddress.ip]"
+    }
+  }
+}

@@ -1,0 +1,108 @@
+# Pod deployment for the statement analysis service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: statement-analysis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: statement-analysis
+  template:
+    metadata:
+      labels:
+        app: statement-analysis
+      annotations:
+        container.seccomp.security.alpha.kubernetes.io/statement-analysis-service: localhost/seccomp-policy.json
+    spec:
+      initContainers:
+      - name: ccr-init
+        image: foo.azurecr.io/ccr-init:latest
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN","NET_RAW"]
+            drop: ["ALL"]
+        command: ["/bin/sh", "setup-iptables.sh"]
+      containers:
+      - name: statement-analysis-service
+        image: foo.azurecr.io/statement-analysis-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        # Environment variable used by Python Requests library to setup the proxy.
+        - name: HTTP_PROXY
+          value: "http://127.0.0.1:15001/"
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          capabilities:
+            drop: ["ALL"]
+      - name: ccr-proxy
+        image: foo.azurecr.io/ccr-proxy:latest
+        ports:
+        - containerPort: 15001
+        command: [ "/bin/sh", "bootstrap.sh" ]
+        env:
+        - name: MAA_ENDPOINT
+          value: "sharedneu.neu.attest.azure.net"
+      - name: ccr-sidecar
+        image: foo.azurecr.io/ccr-sidecar:latest
+        imagePullPolicy: Always
+        command: ["/bin/sh", "run.sh"]
+        env:
+        - name: "PORT"
+          value: "8281"
+        - name: "POLICY_DATA"
+          value: |
+            {
+              "host": "127.0.0.1",
+              "local": {
+                "crypto_sidecar": {
+                  "port": 8283
+                },
+                "skr_sidecar": {
+                  "port": 8284,
+                  "maa_endpoint": "sharedneu.neu.attest.azure.net"
+                },
+                "keyprovider_sidecar": {
+                  "port": 8285
+                }
+              },
+              "services": {
+                "aa_cert_registry": {
+                  "uri": "http://certificate-registry.default:80"
+                }
+              }
+            }
+        - name: "BUNDLE_SERVICE_URL"
+          value: "https://foo.azurecr.io"
+        - name: "BUNDLE_RESOURCE_PATH"
+          value: "foo.azurecr.io/depa-policies:latest"
+        - name: "BUNDLE_SERVICE_CREDENTIALS_SCHEME"
+          value: ""
+        - name: "BUNDLE_SERVICE_CREDENTIALS_TOKEN"
+          value: ""
+        ports:
+        - containerPort: 8281
+        securityContext:
+          runAsUser: 1337
+          runAsGroup: 1337
+      - name: crypto-sidecar
+        image: foo.azurecr.io/crypto-sidecar:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8283
+      - name: ccr-skr-sidecar
+        image: foo.azurecr.io/ccr-skr-sidecar:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8284
+        command: ["/bin/sh", "skr.sh", "ewogICAiY2VydGNhY2hlIjogewogICAgICAiZW5kcG9pbnQiOiAiYW1lcmljYXMudGVzdC5hY2NjYWNoZS5henVyZS5uZXQiLAogICAgICAidGVlX3R5cGUiOiAiU2V2U25wVk0iLAogICAgICAiYXBpX3ZlcnNpb24iOiAiYXBpLXZlcnNpb249MjAyMC0xMC0xNS1wcmV2aWV3IgogICB9Cn0=", "8284"]
+        securityContext:
+          runAsUser: 1337
+          runAsGroup: 1337
+      volumes:
+      - name: ccr-proxy-config
+        configMap:
+          name: ccr-proxy-config

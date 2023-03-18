@@ -1,2 +1,0 @@
-# Files that will always have LF line endings on checkout.
-implementation/ci/config/seccomp/pod-script.sh text eol=lf

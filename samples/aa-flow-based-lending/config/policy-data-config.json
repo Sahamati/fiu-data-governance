@@ -1,0 +1,20 @@
+{
+  "host": "127.0.0.1",
+  "local": {
+    "crypto_sidecar": {
+      "port": 8283
+    },
+    "skr_sidecar": {
+      "port": 8284,
+      "maa_endpoint": "sharedneu.neu.attest.azure.net"
+    },
+    "keyprovider_sidecar": {
+      "port": 8285
+    }
+  },
+  "services": {
+    "aa_cert_registry": {
+      "uri": ""
+    }
+  }
+}

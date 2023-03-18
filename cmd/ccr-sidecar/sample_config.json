@@ -1,0 +1,29 @@
+{
+  "host":"127.0.0.1",
+  "port":8281,
+  "local":{
+    "policy_engine":{
+      "bundle_service_url":"http://localhost:5000",
+      "bundle_resource":"localhost:5000/depa-policies:latest",
+      "data":{
+        "host": "127.0.0.1",
+        "local": {
+          "crypto_sidecar":{
+            "port": 8283
+          },
+          "skr_sidecar":{
+            "port": 8284
+          },
+          "keyprovider_sidecar":{
+            "port": 8285
+          }
+        },
+        "services":{
+          "aa_cert_registry":{
+            "uri":"https://cert-registry:8080"
+          }
+        }
+      }
+    }
+  }
+}

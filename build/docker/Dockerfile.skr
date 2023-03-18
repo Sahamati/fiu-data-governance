@@ -1,0 +1,38 @@
+# Image for building the SKR sidecar.
+FROM ubuntu:20.04 AS build-image
+
+# Install prerequisities.
+RUN apt-get update -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install \
+    software-properties-common build-essential ca-certificates \
+    libssl-dev pkg-config curl wget apt-transport-https
+RUN add-apt-repository ppa:longsleep/golang-backports
+RUN apt-get update -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install \
+    golang-go
+
+WORKDIR /root
+
+# Build the SKR sidecar.
+COPY external/confidential-sidecar-containers confidential-sidecar-containers
+RUN cd confidential-sidecar-containers/cmd/skr && \
+    CGO_ENABLED=0 GOOS=linux go build .
+RUN cd confidential-sidecar-containers/tools/get-snp-report && make
+
+# # Image that contains the SKR sidecar.
+FROM alpine:3.13
+
+RUN apk update && apk add curl
+
+USER 1337:1337
+
+WORKDIR /home/user
+
+COPY --from=build-image /root/confidential-sidecar-containers/cmd/skr/skr /bin/
+COPY --from=build-image /root/confidential-sidecar-containers/tools/get-snp-report/bin/get-snp-report /bin/
+COPY --chown=1337:1337 --from=build-image /root/confidential-sidecar-containers/docker/skr/skr.sh ./
+RUN mkdir -p tests
+COPY --chown=1337:1337 --from=build-image /root/confidential-sidecar-containers/docker/skr/tests/*_client.sh ./tests/.
+
+ARG PORT=8284
+EXPOSE ${PORT}

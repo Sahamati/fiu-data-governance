@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-aggregator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: account-aggregator
+  template:
+    metadata:
+      labels:
+        app: account-aggregator
+    spec:
+      containers:
+      - name: account-aggregator-service
+        image: foo.azurecr.io/account-aggregator-service:latest
+        imagePullPolicy: Always
+        command: ["python3"]
+        args: [main.py, "-v", "--host", "0.0.0.0", "--url-crypto", "http://localhost:8283"]
+        ports:
+        - containerPort: 8000
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+      - name: crypto-sidecar
+        image: foo.azurecr.io/crypto-sidecar:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8283

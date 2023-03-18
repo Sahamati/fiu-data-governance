@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../../base/certificate-registry
+
+patches:
+- target:
+    kind: Deployment
+    name: certificate-registry
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: certificate-registry
+    spec:
+      template:
+        spec:
+          containers:
+          - name: certificate-registry-service
+            image: ${IMAGE_PATH_PREFIX}/certificate-registry-service:latest

@@ -1,0 +1,165 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "name": {
+      "defaultValue": "certificate-registry-aci",
+      "type": "string",
+      "metadata": {
+        "description": "Name for the container group"
+      }
+    },
+    "location": {
+      "defaultValue": "[resourceGroup().location]",
+      "type": "string",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "port": {
+      "defaultValue": 8080,
+      "type": "int",
+      "metadata": {
+        "description": "Port to open on the container and the public IP address."
+      }
+    },
+    "containerRegistry": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "The container registry login server."
+      }
+    },
+    "containerRegistryUsername": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "The container registry username."
+      }
+    },
+    "containerRegistryPassword": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "The container registry password."
+      }
+    },
+    "imagePathPrefix": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "The path prefix to the images."
+      }
+    },
+    "keyVault": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "The key vault url."
+      }
+    },
+    "restartPolicy": {
+      "defaultValue": "Never",
+      "allowedValues": [
+        "Always",
+        "Never",
+        "OnFailure"
+      ],
+      "type": "string",
+      "metadata": {
+        "description": "The behavior of Azure runtime if container has stopped."
+      }
+    },
+    "ccePolicy": {
+      "defaultValue": "secureString",
+      "type": "string",
+      "metadata": {
+        "description": "cce policy"
+      }
+    },
+    "dnsNameLabel": {
+      "defaultValue": "secureSring",
+      "type": "string",
+      "metadata": {
+        "description": "DNS name of this service"
+      }
+    }
+  },
+  "variables": {
+    "imageRegistryCredentials": [
+      {
+        "server": "[parameters('containerRegistry')]",
+        "username": "[parameters('containerRegistryUsername')]",
+        "password": "[parameters('containerRegistryPassword')]"
+      }
+    ]
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2022-04-01-preview",
+      "name": "[parameters('name')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "containers": [
+          {
+            "name": "certificate-registry-service",
+            "properties": {
+              "image": "[concat(parameters('imagePathPrefix'), '/certificate-registry-service:latest')]",
+              "command": [
+                "/bin/sh",
+                "-c",
+                "python3 main.py --host ${SERVICE_HOST} --port ${SERVICE_PORT} -v"
+              ],
+              "environmentVariables": [
+                {
+                  "name": "SERVICE_HOST",
+                  "value": "0.0.0.0"
+                },
+                {
+                  "name": "SERVICE_PORT",
+                  "value": "8080"
+                },
+                {
+                  "name": "PYTHONUNBUFFERED",
+                  "value": "1"
+                }        
+              ],        
+              "ports": [
+                {
+                  "port": "[parameters('port')]",
+                  "protocol": "TCP"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "1",
+                  "memoryInGB": "2"
+                }
+              }
+            }
+          }       
+        ],
+        "osType": "Linux",
+        "restartPolicy": "[parameters('restartPolicy')]",
+        "ipAddress": {
+          "type": "Public",
+          "ports": [
+            {
+              "port": "[parameters('port')]",
+              "protocol": "TCP"
+            }
+          ],
+          "dnsNameLabel": "[parameters('dnsNameLabel')]"
+        },
+        "imageRegistryCredentials": "[if(equals(parameters('containerRegistryUsername'),''), json('null'), variables('imageRegistryCredentials'))]"
+      }
+    }
+  ],
+  "outputs": {
+    "containerIPv4Address": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('name'))).ipAddress.ip]"
+    }
+  }
+}

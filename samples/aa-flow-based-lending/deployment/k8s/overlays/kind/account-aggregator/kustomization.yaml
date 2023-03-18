@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../../base/account-aggregator
+
+patches:
+- target:
+    kind: Deployment
+    name: account-aggregator
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: account-aggregator
+    spec:
+      template:
+        spec:
+          containers:
+          - name: account-aggregator-service
+            imagePullPolicy: Never
+          - name: crypto-sidecar
+            imagePullPolicy: Never
+- target:
+    kind: Service
+    name: account-aggregator
+  patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: account-aggregator
+    spec:
+      type: ClusterIP

@@ -1,0 +1,3 @@
+{
+    "roots": ["ccr/policy", "sidecar"]
+}
