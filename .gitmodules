@@ -1,0 +1,6 @@
+[submodule "external/rahasya"]
+	path = external/rahasya
+	url = https://github.com/Sahamati/rahasya.git
+[submodule "external/confidential-sidecar-containers"]
+	path = external/confidential-sidecar-containers
+	url = https://github.com/microsoft/confidential-sidecar-containers
